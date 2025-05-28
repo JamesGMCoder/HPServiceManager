@@ -38,24 +38,27 @@ foreach ($service in $hpServices) {
 
 # Optional: Remove HP-related installed programs
 # Comment this block out if you don't want to uninstall anything
-# Write-Output "`nSearching for installed HP programs..."
+Write-Output "`nSearching for installed HP programs..."
 
-# try {
-#     $hpPrograms = Get-WmiObject -Class Win32_Product -ErrorAction Stop | Where-Object {
-#         $_.Name -like "HP*" -or $_.Name -like "*Hewlett-Packard*"
-#     }
+$programsPaths = @(
+    "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
+    "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
+)
 
-#     foreach ($program in $hpPrograms) {
-#         Write-Output "Uninstalling: $($program.Name)"
-#         try {
-#             $program.Uninstall() | Out-Null
-#             Write-Output "  ✔ Uninstalled"
-#         } catch {
-#             Write-Warning "  ✘ Could not uninstall $($program.Name): $_"
-#         }
-#     }
-# } catch {
-#     Write-Warning "Could not retrieve HP programs: $_"
-# }
+$hpPrograms = foreach ($path in $programsPaths) {
+    Get-ItemProperty $path -ErrorAction SilentlyContinue | Where-Object {
+        $_.DisplayName -like "HP*" -or $_.DisplayName -like "*Hewlett-Packard*"
+    }
+}
 
-# Write-Output "`n✅ Done. You may want to reboot the system."
+if ($hpPrograms.Count -eq 0) {
+    Write-Output "No HP programs found."
+} else {
+    foreach ($program in $hpPrograms) {
+        Write-Output "Found: $($program.DisplayName)"
+        # Note: You would need to use $program.UninstallString if you want to uninstall from here.
+    }
+}
+
+Write-Output "`n✅ Done. You may want to reboot the system."
+
